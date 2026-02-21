@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Journal - Home</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .container {
+            max-width: 800px;
+        }
+        .welcome {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .welcome h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: var(--heading-color);
+        }
+        .welcome p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .nav-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .nav-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            border-color: var(--primary-color);
+        }
+        .nav-icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+        }
+        .nav-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--heading-color);
+            margin-bottom: 8px;
+        }
+        .nav-description {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+        .section-divider {
+            margin: 40px 0 20px 0;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="welcome">
+            <h1>📖 Life Journal</h1>
+            <p>Track your life's memories and experiences</p>
+        </div>
+
+        <div class="section-divider">Journal</div>
+        <div class="nav-grid">
+            <a href="/journal" class="nav-card">
+                <div class="nav-icon">✍️</div>
+                <div class="nav-title">New Entry</div>
+                <div class="nav-description">Create a new journal entry</div>
+            </a>
+            <a href="/entries" class="nav-card">
+                <div class="nav-icon">📚</div>
+                <div class="nav-title">View Entries</div>
+                <div class="nav-description">Browse all journal entries</div>
+            </a>
+        </div>
+
+        <div class="section-divider">Entertainment</div>
+        <div class="nav-grid">
+            <a href="/movies" class="nav-card">
+                <div class="nav-icon">🎬</div>
+                <div class="nav-title">Movies</div>
+                <div class="nav-description">View watched movies by tier</div>
+            </a>
+            <a href="/tv" class="nav-card">
+                <div class="nav-icon">📺</div>
+                <div class="nav-title">TV Shows</div>
+                <div class="nav-description">Track TV shows watched</div>
+            </a>
+            <a href="/books" class="nav-card">
+                <div class="nav-icon">📚</div>
+                <div class="nav-title">Books</div>
+                <div class="nav-description">Browse book collection</div>
+            </a>
+            <a href="/concerts" class="nav-card">
+                <div class="nav-icon">🎵</div>
+                <div class="nav-title">Concerts</div>
+                <div class="nav-description">View concerts attended</div>
+            </a>
+        </div>
+
+        <div class="section-divider">Places</div>
+        <div class="nav-grid">
+            <a href="/food" class="nav-card">
+                <div class="nav-icon">🍽️</div>
+                <div class="nav-title">Food Places</div>
+                <div class="nav-description">Explore restaurants and cafes</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>

@@ -353,6 +353,12 @@ func main() {
 	}(db)
 	fmt.Println("Connected to DB")
 
+	// Home page
+	r.GET("/", func(c *gin.Context) {
+		html, _ := os.ReadFile("./assets/html/home.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
 	// Get all concerts (HTML page)
 	r.GET("/concerts", func(c *gin.Context) {
 		html, _ := os.ReadFile("./assets/html/concerts.html")
