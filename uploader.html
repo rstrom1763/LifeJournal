@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Multiple Images</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<h2>Select Multiple Images to Upload</h2>
+
+<input type="file" id="fileInput" multiple accept="image/*">
+    <button onclick="uploadFiles()">Upload</button>
+
+    <div id="preview"></div>
+
+    <script>
+        const fileInput = document.getElementById("fileInput");
+        const preview = document.getElementById("preview");
+        const uploadUrl = '/journal/upload/photos';
+
+        fileInput.addEventListener("change", function () {
+        preview.innerHTML = ""; // Clear previous previews
+        const files = fileInput.files;
+
+        for (const file of files) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+        const img = document.createElement("img");
+        img.src = e.target.result;
+        img.className = "image-preview";
+        preview.appendChild(img);
+    };
+        reader.readAsDataURL(file);
+    }
+    });
+
+        async function uploadFiles() {
+        const files = fileInput.files;
+        if (files.length === 0) {
+        alert("Please select at least one file.");
+        return;
+    }
+
+        const formData = new FormData();
+        for (const file of files) {
+        formData.append("images[]", file); // 'images[]' is the key for multiple file uploads
+    }
+
+        try {
+        const response = await fetch(uploadUrl, {
+        method: "POST",
+        body: formData,
+    });
+
+        if (response.ok) {
+        alert("Upload successful!");
+    } else {
+        alert("Upload failed.");
+    }
+    } catch (error) {
+        console.error("Error uploading files:", error);
+        alert("Error uploading files.");
+    }
+    }
+    </script>
+
+</body>
+</html>

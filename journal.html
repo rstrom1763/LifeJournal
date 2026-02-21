@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Entry</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="container">
+    <h2>New Journal Entry</h2>
+
+    <form id="journalForm">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" placeholder="A title for your memory..." required>
+
+        <label for="entry">Entry</label>
+        <textarea id="entry" name="entry" rows="6" placeholder="What's on your mind?" required></textarea>
+
+        <label for="tags">Tags (comma-separated)</label>
+        <input type="text" id="tags" name="tags" placeholder="life, travel, food...">
+
+        <div class="section-header">Photos</div>
+        <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Select images to include with this entry</p>
+        <input type="file" id="fileInput" multiple accept="image/*">
+
+        <div id="preview"></div>
+
+        <div class="button-container">
+            <button type="button" onclick="submitJournal()">Save Entry</button>
+        </div>
+    </form>
+</div>
+
+
+<script>
+
+        const uploadPhotosUrl = '/journal/upload/photos';
+        const uploadJournalUrl = '/journal/upload';
+
+    fileInput.addEventListener("change", function () {
+        preview.innerHTML = ""; // Clear previous previews
+        const files = fileInput.files;
+
+        if (files.length === 0) {
+            preview.style.display = "none";
+            return;
+        }
+        preview.style.display = "flex";
+
+        for (const file of files) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const img = document.createElement("img");
+                img.src = e.target.result;
+                img.className = "image-preview";
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    async function submitJournal() {
+        // Get form values
+        const title = document.getElementById("title").value.trim();
+        const entry = document.getElementById("entry").value.trim();
+        const tags = document.getElementById("tags").value.trim();
+        const uploadUrl = origin + '/journal/upload'
+
+        if (!title || !entry) {
+            alert("Title and Entry are required!");
+            return;
+        }
+
+        const submitBtn = document.querySelector('button');
+        const originalBtnText = submitBtn.innerText;
+        submitBtn.disabled = true;
+        submitBtn.innerText = "Saving...";
+
+        try {
+            let fileIds = await uploadImages()
+
+            // Create an object matching the Go struct
+            const journalEntry = {
+                Title: title,
+                Entry: entry,
+                Tags: tags,
+                Photos: fileIds
+            };
+
+            // Log to console (for testing)
+            console.log("Journal Entry:", journalEntry);
+
+            // Send data to a backend API
+            const response = await fetch(uploadJournalUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(journalEntry)
+            });
+
+            if (response.ok) {
+                alert("Journal entry saved!");
+                window.location.reload();
+            } else {
+                alert("Failed to save journal entry.");
+            }
+        } catch (error) {
+            console.error("Error:", error);
+            alert("An error occurred while saving.");
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = originalBtnText;
+        }
+    }
+
+    async function uploadImages() {
+        const files = fileInput.files;
+
+        if (files.length === 0) {
+            return "[]";
+        }
+
+        const formData = new FormData();
+        for (const file of files) {
+            formData.append("images[]", file); // 'images[]' is the key for multiple file uploads
+        }
+
+        const response = await fetch(uploadPhotosUrl, {
+            method: "POST",
+            body: formData,
+        });
+
+        if (response.ok) {
+            return await response.text();
+        } else {
+            throw new Error("Upload failed.");
+        }
+    }
+
+</script>
+
+
+</body>
+</html>
