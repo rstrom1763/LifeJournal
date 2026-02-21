@@ -217,6 +217,34 @@ button:active {
     transform: scale(1.05);
 }
 
+/* Home button */
+.home-btn {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    padding: 10px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    z-index: 1000;
+}
+
+.home-btn:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
 /* Base styles for simple pages like uploader.html */
 body:not(:has(.container)) {
     padding: 20px;
