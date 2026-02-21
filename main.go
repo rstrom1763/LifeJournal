@@ -177,6 +177,34 @@ type Concert struct {
 	People  string
 }
 
+type Movie struct {
+	Title string
+	Tier  string
+}
+
+type Book struct {
+	Title    string
+	Rating   float64
+	Pages    int
+	Author   string
+	Series   string
+	Finished bool
+}
+
+type FoodPlace struct {
+	Name     string
+	Location string
+	Notes    string
+	Type     string
+	Category string
+}
+
+type TVShow struct {
+	Title          string
+	Notes          string
+	SeasonsWatched string
+}
+
 type JournalEntry struct {
 	Title  string
 	Entry  string
@@ -349,242 +377,219 @@ func main() {
 	}(db)
 	fmt.Println("Connected to DB")
 
-	// Get all concerts
+	// Get all concerts (HTML page)
 	r.GET("/concerts", func(c *gin.Context) {
-
-		rows, err := db.Query("SELECT artists, people_went_with, notes FROM concerts")
-		if err != nil {
-			log.Fatalf("Could not get concerts: %v", err)
-		}
-
-		var artists string
-		var notes string
-		var peopleWentWith string
-		var peopleWentWithString string
-		var output string
-
-		for rows.Next() {
-
-			err = rows.Scan(&artists, &peopleWentWith, &notes)
-			if err != nil {
-				log.Fatalf("Could not scan rows: %v", err)
-			}
-
-			artistsString := artists
-			peopleWentWithString = peopleWentWith
-
-			if peopleWentWithString == "" {
-				peopleWentWithString = "None"
-			}
-
-			output += "Artists: " + artistsString + "\nPeople went with: " + peopleWentWithString + "\nNotes: " + notes + "\n\n"
-		}
-
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(http.StatusOK, "text/plain", outputGzip)
-
-		_ = rows.Close()
+		html, _ := os.ReadFile("./assets/html/concerts.html")
+		c.Data(http.StatusOK, "text/html", html)
 	})
 
-	// Get all movies
-	r.GET("/movies", func(c *gin.Context) {
+	// Get all concerts (JSON API)
+	r.GET("/api/concerts", func(c *gin.Context) {
+		rows, err := db.Query("SELECT artists, people_went_with, notes FROM concerts")
+		if err != nil {
+			log.Printf("Could not get concerts: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get concerts"})
+			return
+		}
 
+		var concerts []Concert
+
+		for rows.Next() {
+			var concert Concert
+			err = rows.Scan(&concert.Artists, &concert.People, &concert.Notes)
+			if err != nil {
+				log.Printf("Could not scan rows: %v", err)
+				continue
+			}
+			concerts = append(concerts, concert)
+		}
+		_ = rows.Close()
+
+		c.JSON(http.StatusOK, concerts)
+	})
+
+	// Get all movies (HTML page)
+	r.GET("/movies", func(c *gin.Context) {
+		html, _ := os.ReadFile("./assets/html/movies.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
+	// Get all movies (JSON API)
+	r.GET("/api/movies", func(c *gin.Context) {
 		getQuery := `SELECT title, tier FROM watched_movies`
 
 		rows, err := db.Query(getQuery)
 		if err != nil {
-			log.Fatalf("Could not get movies: %v", err)
+			log.Printf("Could not get movies: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get movies"})
+			return
 		}
 
-		var title string
-		var tier string
-		var output string
+		var movies []Movie
 
 		for rows.Next() {
-
-			err = rows.Scan(&title, &tier)
+			var movie Movie
+			err = rows.Scan(&movie.Title, &movie.Tier)
 			if err != nil {
-				log.Fatalf("Could not scan rows: %v", err)
+				log.Printf("Could not scan rows: %v", err)
+				continue
 			}
-			output += title + ": " + tier + "\n\n"
-
+			movies = append(movies, movie)
 		}
-
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(200, "text/plain", outputGzip)
-
 		_ = rows.Close()
 
+		c.JSON(http.StatusOK, movies)
 	})
 
-	// Get all movies of the provided tier
-	r.GET("/movies/:tier", func(c *gin.Context) {
-
+	// Get all movies of the provided tier (JSON API)
+	r.GET("/api/movies/:tier", func(c *gin.Context) {
 		tier := strings.ToUpper(c.Param("tier"))
 		getQuery := `SELECT title, tier FROM watched_movies WHERE tier = ?`
 
 		rows, err := db.Query(getQuery, tier)
 		if err != nil {
-			log.Fatalf("Could not get movies: %v", err)
+			log.Printf("Could not get movies: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get movies"})
+			return
 		}
 
-		var title string
-		var output string
+		var movies []Movie
 
 		for rows.Next() {
-
-			err := rows.Scan(&title, &tier)
+			var movie Movie
+			err := rows.Scan(&movie.Title, &movie.Tier)
 			if err != nil {
-				log.Fatal("Could not scan rows: ", err)
+				log.Printf("Could not scan rows: %v", err)
+				continue
 			}
-			output += title + ": " + tier + "\n\n"
+			movies = append(movies, movie)
 		}
-
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(200, "text/plain", outputGzip)
-
 		_ = rows.Close()
 
+		c.JSON(http.StatusOK, movies)
 	})
 
+	// Get all books (HTML page)
 	r.GET("/books", func(c *gin.Context) {
+		html, _ := os.ReadFile("./assets/html/books.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
+	// Get all books (JSON API)
+	r.GET("/api/books", func(c *gin.Context) {
 		getQuery := `SELECT title, rating, pages, author, series, finished FROM books`
 
 		rows, err := db.Query(getQuery)
 		if err != nil {
-			log.Fatalf("Could not get books: %v", err)
+			log.Printf("Could not get books: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get books"})
+			return
 		}
 
-		var title string
-		var rating float32
-		var pageCount int
-		var author string
-		var series string
-		var finished bool
-		var output string
+		var books []Book
 
 		for rows.Next() {
-
-			err = rows.Scan(&title, &rating, &pageCount, &author, &series, &finished)
+			var book Book
+			err = rows.Scan(&book.Title, &book.Rating, &book.Pages, &book.Author, &book.Series, &book.Finished)
 			if err != nil {
-				log.Fatalf("Could not scan rows: %v", err)
+				log.Printf("Could not scan rows: %v", err)
+				continue
 			}
-
-			output += fmt.Sprintf("Title: %s\nRating: %.1f\nPageCount: %d\nAuthor: %s\nSeries: %s\nFinished: %t\n\n",
-				title, rating, pageCount, author, series, finished)
-
+			books = append(books, book)
 		}
-
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(200, "text/plain", outputGzip)
-
 		_ = rows.Close()
+
+		c.JSON(http.StatusOK, books)
 	})
 
+	// Get all food places (HTML page)
 	r.GET("/food", func(c *gin.Context) {
+		html, _ := os.ReadFile("./assets/html/food.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
+	// Get all food places (JSON API)
+	r.GET("/api/food", func(c *gin.Context) {
 		getQuery := `SELECT name, location, notes, type, category FROM food_places ORDER BY name`
 
 		rows, err := db.Query(getQuery)
 		if err != nil {
-			log.Fatalf("Could not get food: %v", err)
+			log.Printf("Could not get food: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get food"})
+			return
 		}
 
-		var name string
-		var location string
-		var notes string
-		var kind string
-		var category string
-		var output string
+		var foodPlaces []FoodPlace
 
 		for rows.Next() {
-
-			_ = rows.Scan(&name, &location, &notes, &kind, &category)
-
-			output += fmt.Sprintf("Name: %s\nLocation: %s\nNotes: %s\nType: %s\nCategory: %s\n\n",
-				name, location, notes, kind, category)
-
+			var place FoodPlace
+			_ = rows.Scan(&place.Name, &place.Location, &place.Notes, &place.Type, &place.Category)
+			foodPlaces = append(foodPlaces, place)
 		}
-
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(200, "text/plain", outputGzip)
-
 		_ = rows.Close()
+
+		c.JSON(http.StatusOK, foodPlaces)
 	})
 
-	r.GET("/food/:location", func(c *gin.Context) {
+	// Get food places by location (JSON API)
+	r.GET("/api/food/:location", func(c *gin.Context) {
 		getQuery := `SELECT name, location, notes, type, category FROM food_places WHERE location = ? ORDER BY name`
 
-		var name string
-		var location string
-		var notes string
-		var kind string
-		var category string
-		var output string
-
-		location = c.Param("location")
+		location := c.Param("location")
 		location = strings.ToLower(location)
 
-		rows, _ := db.Query(getQuery, location)
-
-		for rows.Next() {
-
-			_ = rows.Scan(&name, &location, &notes, &kind, &category)
-			output += fmt.Sprintf("Name: %s\nLocation: %s\nNotes: %s\nType: %s\nCategory: %s\n\n",
-				name, location, notes, kind, category)
-
+		rows, err := db.Query(getQuery, location)
+		if err != nil {
+			log.Printf("Could not get food: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get food"})
+			return
 		}
 
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(200, "text/plain", outputGzip)
+		var foodPlaces []FoodPlace
 
+		for rows.Next() {
+			var place FoodPlace
+			_ = rows.Scan(&place.Name, &place.Location, &place.Notes, &place.Type, &place.Category)
+			foodPlaces = append(foodPlaces, place)
+		}
 		_ = rows.Close()
+
+		c.JSON(http.StatusOK, foodPlaces)
 	})
 
 	r.GET("/favicon.ico", func(c *gin.Context) {
-		img, _ := os.ReadFile("./img.png")
+		img, _ := os.ReadFile("./assets/images/img.png")
 
 		c.Data(http.StatusOK, "image/x-icon", img)
 	})
 
+	// Get all TV shows (HTML page)
 	r.GET("/tv", func(c *gin.Context) {
+		html, _ := os.ReadFile("./assets/html/tv.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
+	// Get all TV shows (JSON API)
+	r.GET("/api/tv", func(c *gin.Context) {
 		getQuery := `SELECT title, notes, seasons_watched FROM tv_shows`
 
-		rows, _ := db.Query(getQuery)
-
-		var title string
-		var notes string
-		var seasons_watched string
-		var output string
-
-		for rows.Next() {
-
-			_ = rows.Scan(&title, &notes, &seasons_watched)
-			seasonsWatchedString := seasons_watched
-
-			if seasonsWatchedString == "" {
-				seasonsWatchedString = "Unknown"
-			}
-
-			if notes == "" {
-				notes = "None"
-			}
-
-			output += fmt.Sprintf("Title: %s\nNotes: %s\nSeasons Watched: %s\n\n",
-				title, notes, seasonsWatchedString)
-
+		rows, err := db.Query(getQuery)
+		if err != nil {
+			log.Printf("Could not get TV shows: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get TV shows"})
+			return
 		}
 
-		outputGzip, _ := gzipBytes([]byte(output))
-		c.Header("Content-Encoding", "gzip")
-		c.Data(200, "text/plain", outputGzip)
+		var tvShows []TVShow
 
+		for rows.Next() {
+			var show TVShow
+			_ = rows.Scan(&show.Title, &show.Notes, &show.SeasonsWatched)
+			tvShows = append(tvShows, show)
+		}
 		_ = rows.Close()
+
+		c.JSON(http.StatusOK, tvShows)
 	})
 
 	// Endpoint for file upload
@@ -735,17 +740,17 @@ func main() {
 	})
 
 	r.GET("/journal", func(c *gin.Context) {
-		html, _ := os.ReadFile("./journal.html")
+		html, _ := os.ReadFile("./assets/html/journal.html")
 		c.Data(http.StatusOK, "text/html", html)
 	})
 
 	r.GET("/entries", func(c *gin.Context) {
-		html, _ := os.ReadFile("./journal_list.html")
+		html, _ := os.ReadFile("./assets/html/journal_list.html")
 		c.Data(http.StatusOK, "text/html", html)
 	})
 
 	r.GET("/style.css", func(c *gin.Context) {
-		css, _ := os.ReadFile("./style.css")
+		css, _ := os.ReadFile("./assets/css/style.css")
 		c.Data(http.StatusOK, "text/css", css)
 	})
 

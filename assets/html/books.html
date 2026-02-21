@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Books</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .container {
+            max-width: 1000px;
+        }
+        .item-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        .item-title {
+            font-size: 1.3rem;
+            color: var(--heading-color);
+            font-weight: 600;
+            margin: 0;
+        }
+        .rating-badge {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 1rem;
+            min-width: 50px;
+            text-align: center;
+        }
+        .item-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .meta-field {
+            display: flex;
+            align-items: center;
+        }
+        .field-label {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        .field-value {
+            color: var(--text-color);
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-finished {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .status-unfinished {
+            background-color: #e74c3c;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📚 Books</h2>
+        <div id="books-list"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('books-list');
+
+        // Fetch books from API
+        fetch('/api/books')
+            .then(response => response.json())
+            .then(books => {
+                if (books.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No books recorded yet.</p>';
+                } else {
+                    books.forEach(book => {
+                        const card = document.createElement('div');
+                        card.className = 'item-card';
+
+                        const statusBadge = book.Finished
+                            ? '<span class="status-badge status-finished">✓ Finished</span>'
+                            : '<span class="status-badge status-unfinished">In Progress</span>';
+
+                        card.innerHTML = `
+                            <div class="item-header">
+                                <h3 class="item-title">${book.Title}</h3>
+                                <div class="rating-badge">★ ${book.Rating.toFixed(1)}</div>
+                            </div>
+                            <div class="item-meta">
+                                <div class="meta-field">
+                                    <span class="field-label">Author:</span>
+                                    <span class="field-value">${book.Author || 'Unknown'}</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Pages:</span>
+                                    <span class="field-value">${book.Pages}</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Series:</span>
+                                    <span class="field-value">${book.Series || 'N/A'}</span>
+                                </div>
+                                <div class="meta-field">
+                                    <span class="field-label">Status:</span>
+                                    ${statusBadge}
+                                </div>
+                            </div>
+                        `;
+
+                        container.appendChild(card);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching books:', error);
+                container.innerHTML = '<p style="color: #e74c3c;">Error loading books.</p>';
+            });
+    </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concerts</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .container {
+            max-width: 900px;
+        }
+        .item-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .item-title {
+            font-size: 1.3rem;
+            color: var(--heading-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .item-field {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        .field-label {
+            color: var(--primary-color);
+            font-weight: 600;
+            display: inline-block;
+            min-width: 140px;
+        }
+        .field-value {
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🎵 Concerts</h2>
+        <div id="concerts-list"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('concerts-list');
+
+        // Fetch concerts from API
+        fetch('/api/concerts')
+            .then(response => response.json())
+            .then(concerts => {
+                if (concerts.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No concerts recorded yet.</p>';
+                } else {
+                    concerts.forEach(concert => {
+                        const card = document.createElement('div');
+                        card.className = 'item-card';
+
+                        card.innerHTML = `
+                            <div class="item-title">${concert.Artists}</div>
+                            <div class="item-field">
+                                <span class="field-label">People:</span>
+                                <span class="field-value">${concert.People || 'None'}</span>
+                            </div>
+                            <div class="item-field">
+                                <span class="field-label">Notes:</span>
+                                <span class="field-value">${concert.Notes || 'N/A'}</span>
+                            </div>
+                        `;
+
+                        container.appendChild(card);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching concerts:', error);
+                container.innerHTML = '<p style="color: #e74c3c;">Error loading concerts.</p>';
+            });
+    </script>
+</body>
+</html>

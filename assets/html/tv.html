@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Shows</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .container {
+            max-width: 900px;
+        }
+        .item-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .item-title {
+            font-size: 1.3rem;
+            color: var(--heading-color);
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        .item-field {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+        .field-label {
+            color: var(--primary-color);
+            font-weight: 600;
+            display: inline-block;
+            min-width: 160px;
+        }
+        .field-value {
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>📺 TV Shows</h2>
+        <div id="tv-list"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('tv-list');
+
+        // Fetch TV shows from API
+        fetch('/api/tv')
+            .then(response => response.json())
+            .then(tvShows => {
+                if (tvShows.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No TV shows recorded yet.</p>';
+                } else {
+                    tvShows.forEach(show => {
+                        const card = document.createElement('div');
+                        card.className = 'item-card';
+
+                        const seasonsWatched = show.SeasonsWatched || 'Unknown';
+                        const notes = show.Notes || 'None';
+
+                        card.innerHTML = `
+                            <div class="item-title">${show.Title}</div>
+                            <div class="item-field">
+                                <span class="field-label">Seasons Watched:</span>
+                                <span class="field-value">${seasonsWatched}</span>
+                            </div>
+                            <div class="item-field">
+                                <span class="field-label">Notes:</span>
+                                <span class="field-value">${notes}</span>
+                            </div>
+                        `;
+
+                        container.appendChild(card);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching TV shows:', error);
+                container.innerHTML = '<p style="color: #e74c3c;">Error loading TV shows.</p>';
+            });
+    </script>
+</body>
+</html>

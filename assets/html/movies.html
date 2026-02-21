@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movies</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .container {
+            max-width: 900px;
+        }
+        .filter-section {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background-color: var(--tag-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-btn:hover {
+            background-color: var(--border-color);
+        }
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        .count-badge {
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .filter-btn.active .count-badge {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+        .item-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .item-title {
+            font-size: 1.1rem;
+            color: var(--heading-color);
+            font-weight: 600;
+        }
+        .tier-badge {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .tier-S { background-color: #ff6b6b; }
+        .tier-A { background-color: #4ecdc4; }
+        .tier-B { background-color: #45b7d1; }
+        .tier-C { background-color: #96ceb4; }
+        .tier-D { background-color: #ffeaa7; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🎬 Movies</h2>
+        <div class="filter-section">
+            <button class="filter-btn active" data-tier="all">All</button>
+            <button class="filter-btn" data-tier="S">S Tier</button>
+            <button class="filter-btn" data-tier="A">A Tier</button>
+            <button class="filter-btn" data-tier="B">B Tier</button>
+            <button class="filter-btn" data-tier="C">C Tier</button>
+            <button class="filter-btn" data-tier="D">D Tier</button>
+        </div>
+        <div id="movies-list"></div>
+    </div>
+
+    <script>
+        let movies = [];
+        let currentFilter = 'all';
+
+        function updateButtonCounts() {
+            const totalCount = movies.length;
+            const tierCounts = {
+                'S': movies.filter(m => m.Tier === 'S').length,
+                'A': movies.filter(m => m.Tier === 'A').length,
+                'B': movies.filter(m => m.Tier === 'B').length,
+                'C': movies.filter(m => m.Tier === 'C').length,
+                'D': movies.filter(m => m.Tier === 'D').length
+            };
+
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                const tier = btn.dataset.tier;
+                const count = tier === 'all' ? totalCount : tierCounts[tier];
+
+                // Remove old count badge if exists
+                const oldBadge = btn.querySelector('.count-badge');
+                if (oldBadge) oldBadge.remove();
+
+                // Add new count badge
+                const badge = document.createElement('span');
+                badge.className = 'count-badge';
+                badge.textContent = count || 0;
+                btn.appendChild(badge);
+            });
+        }
+
+        function renderMovies() {
+            const container = document.getElementById('movies-list');
+            container.innerHTML = '';
+
+            const filtered = currentFilter === 'all'
+                ? movies
+                : movies.filter(m => m.Tier === currentFilter);
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted);">No movies in this tier.</p>';
+            } else {
+                filtered.forEach(movie => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+
+                    card.innerHTML = `
+                        <div class="item-title">${movie.Title}</div>
+                        <div class="tier-badge tier-${movie.Tier}">${movie.Tier}</div>
+                    `;
+
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.tier;
+                renderMovies();
+            });
+        });
+
+        // Fetch movies from API
+        fetch('/api/movies')
+            .then(response => response.json())
+            .then(data => {
+                movies = data;
+                updateButtonCounts();
+                renderMovies();
+            })
+            .catch(error => {
+                console.error('Error fetching movies:', error);
+                document.getElementById('movies-list').innerHTML = '<p style="color: #e74c3c;">Error loading movies.</p>';
+            });
+    </script>
+</body>
+</html>
