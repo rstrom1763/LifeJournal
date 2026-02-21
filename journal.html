@@ -9,7 +9,10 @@
 <body>
 
 <div class="container">
-    <h2>New Journal Entry</h2>
+    <div class="header-row">
+        <h2>New Journal Entry</h2>
+        <a href="/entries" class="btn-link">View All</a>
+    </div>
 
     <form id="journalForm">
         <label for="title">Title</label>
@@ -22,7 +25,7 @@
         <input type="text" id="tags" name="tags" placeholder="life, travel, food...">
 
         <div class="section-header">Photos</div>
-        <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Select images to include with this entry</p>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 10px;">Select images to include with this entry</p>
         <input type="file" id="fileInput" multiple accept="image/*">
 
         <div id="preview"></div>
@@ -103,7 +106,7 @@
 
             if (response.ok) {
                 alert("Journal entry saved!");
-                window.location.reload();
+                window.location.href = "/entries";
             } else {
                 alert("Failed to save journal entry.");
             }

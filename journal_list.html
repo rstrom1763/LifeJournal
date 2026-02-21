@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Journal Entries</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div class="container list-container">
+    <div class="header-row">
+        <h2>Journal Entries</h2>
+        <a href="/journal" class="btn-link">New Entry</a>
+    </div>
+
+    <div id="journalEntries">
+        <p>Loading entries...</p>
+    </div>
+</div>
+
+<script>
+    async function fetchEntries() {
+        try {
+            const response = await fetch('/api/journal');
+            if (!response.ok) {
+                throw new Error('Failed to fetch entries');
+            }
+            const entries = await response.json();
+            displayEntries(entries);
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('journalEntries').innerHTML = '<p>No journal entries found.</p>';
+        }
+    }
+
+    function displayEntries(entries) {
+        const container = document.getElementById('journalEntries');
+        if (entries.length === 0) {
+            container.innerHTML = '<p>No journal entries found.</p>';
+            return;
+        }
+
+        container.innerHTML = '';
+        entries.forEach(entry => {
+            const entryEl = document.createElement('div');
+            entryEl.className = 'journal-card';
+            
+            const date = new Date(entry.created).toLocaleString();
+            let photosHtml = '';
+            
+            if (entry.photos && entry.photos !== '[]') {
+                try {
+                    const photoIds = JSON.parse(entry.photos);
+                    if (Array.isArray(photoIds) && photoIds.length > 0) {
+                        photosHtml = '<div class="entry-photos">';
+                        photoIds.forEach(id => {
+                            photosHtml += `<img src="/api/photos/${id}" class="entry-photo" onclick="window.open(this.src)">`;
+                        });
+                        photosHtml += '</div>';
+                    }
+                } catch (e) {
+                    console.error('Error parsing photos JSON', e);
+                }
+            }
+
+            let tagsHtml = '';
+            if (entry.tags) {
+                const tags = entry.tags.split(',').map(t => t.trim()).filter(t => t);
+                if (tags.length > 0) {
+                    tagsHtml = '<div class="entry-tags">' + 
+                        tags.map(tag => `<span class="tag">${tag}</span>`).join('') + 
+                        '</div>';
+                }
+            }
+
+            entryEl.innerHTML = `
+                <div class="entry-header">
+                    <h3 class="entry-title">${entry.title || 'Untitled'}</h3>
+                    <span class="entry-date">${date}</span>
+                </div>
+                ${tagsHtml}
+                <div class="entry-content">${entry.entry.replace(/\n/g, '<br>')}</div>
+                ${photosHtml}
+            `;
+            container.appendChild(entryEl);
+        });
+    }
+
+    fetchEntries();
+</script>
+
+</body>
+</html>

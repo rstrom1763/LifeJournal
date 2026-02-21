@@ -337,7 +337,7 @@ func main() {
 		generateSSL()
 	}
 
-	db := initDB("./life_stats.sqlite")
+	db := initDB("./life_journal.sqlite")
 
 	// Close session at the end
 	defer func(db *sql.DB) {
@@ -637,13 +637,15 @@ func main() {
 			rows, err := db.Query(getQuery, file.Filename)
 			if err != nil {
 				fmt.Println("Failed to execute query:", err)
+				continue
 			}
 
 			var id int
-			for rows.Next() {
+			if rows.Next() {
 				_ = rows.Scan(&id)
 				fileIds = append(fileIds, id)
 			}
+			rows.Close()
 
 			fileIdsJson, _ = json.Marshal(fileIds)
 
@@ -680,8 +682,65 @@ func main() {
 
 	})
 
+	r.GET("/api/journal", func(c *gin.Context) {
+		rows, err := db.Query("SELECT id, created, title, entry, tags, photos FROM journal_entries ORDER BY created DESC")
+		if err != nil {
+			log.Printf("Could not get journal entries: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get journal entries"})
+			return
+		}
+		defer rows.Close()
+
+		var entries []map[string]interface{}
+		for rows.Next() {
+			var id int
+			var createdAt, title, entry, tags, photos string
+			err = rows.Scan(&id, &createdAt, &title, &entry, &tags, &photos)
+			if err != nil {
+				log.Printf("Could not scan journal entry: %v", err)
+				continue
+			}
+
+			entries = append(entries, map[string]interface{}{
+				"id":      id,
+				"created": createdAt,
+				"title":   title,
+				"entry":   entry,
+				"tags":    tags,
+				"photos":  photos,
+			})
+		}
+
+		c.JSON(http.StatusOK, entries)
+	})
+
+	r.GET("/api/photos/:id", func(c *gin.Context) {
+		id := c.Param("id")
+		var fileName string
+		var data []byte
+		err := db.QueryRow("SELECT file_name, bytes FROM files WHERE id = ?", id).Scan(&fileName, &data)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Photo not found"})
+			return
+		}
+
+		contentType := "image/jpeg"
+		if strings.HasSuffix(strings.ToLower(fileName), ".png") {
+			contentType = "image/png"
+		} else if strings.HasSuffix(strings.ToLower(fileName), ".gif") {
+			contentType = "image/gif"
+		}
+
+		c.Data(http.StatusOK, contentType, data)
+	})
+
 	r.GET("/journal", func(c *gin.Context) {
 		html, _ := os.ReadFile("./journal.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
+	r.GET("/entries", func(c *gin.Context) {
+		html, _ := os.ReadFile("./journal_list.html")
 		c.Data(http.StatusOK, "text/html", html)
 	})
 
@@ -689,6 +748,8 @@ func main() {
 		css, _ := os.ReadFile("./style.css")
 		c.Data(http.StatusOK, "text/css", css)
 	})
+
+	r.Static("/uploads", "./uploads")
 
 	fmt.Printf("Listening for %v on port %v...\n", protocol, port) //Notifies that server is running on X port
 	if protocol == "http" {                                        //Start running the Gin server

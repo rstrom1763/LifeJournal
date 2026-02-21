@@ -1,10 +1,14 @@
 :root {
     --primary-color: #4a90e2;
     --primary-hover: #357abd;
-    --bg-color: #f5f7fa;
-    --card-bg: #ffffff;
-    --text-color: #333333;
-    --border-color: #dddddd;
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-color: #e0e0e0;
+    --text-muted: #b0b0b0;
+    --border-color: #333333;
+    --heading-color: #ffffff;
+    --tag-bg: #2c2c2c;
+    --tag-text: #b0b0b0;
 }
 
 body {
@@ -23,7 +27,7 @@ body {
     background-color: var(--card-bg);
     padding: 30px;
     border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
     width: 100%;
     max-width: 650px;
 }
@@ -32,8 +36,8 @@ h2 {
     margin-top: 0;
     margin-bottom: 24px;
     font-weight: 600;
-    color: #2c3e50;
-    border-bottom: 2px solid var(--bg-color);
+    color: var(--heading-color);
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 10px;
 }
 
@@ -43,6 +47,7 @@ h2 {
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 8px;
     margin-bottom: 15px;
+    color: var(--heading-color);
 }
 
 label {
@@ -56,6 +61,8 @@ textarea, input[type="text"] {
     width: 100%;
     padding: 12px;
     border: 1px solid var(--border-color);
+    background-color: #2c2c2c;
+    color: var(--text-color);
     border-radius: 6px;
     font-size: 14px;
     box-sizing: border-box;
@@ -70,6 +77,7 @@ textarea:focus, input[type="text"]:focus {
 input[type="file"] {
     margin-top: 10px;
     width: 100%;
+    color: var(--text-color);
 }
 
 .button-container {
@@ -104,7 +112,7 @@ button:active {
     gap: 12px;
     margin-top: 15px;
     padding: 10px;
-    background-color: #fafafa;
+    background-color: #2c2c2c;
     border-radius: 8px;
     min-height: 50px;
     border: 1px dashed var(--border-color);
@@ -115,8 +123,98 @@ button:active {
     height: 100px;
     object-fit: cover;
     border-radius: 8px;
-    border: 2px solid white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 2px solid #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+/* Journal List Styles */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.btn-link {
+    text-decoration: none;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.journal-card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: box-shadow 0.2s;
+}
+
+.journal-card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.entry-title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--heading-color);
+}
+
+.entry-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.entry-tags {
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag {
+    background-color: var(--tag-bg);
+    color: var(--tag-text);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.entry-content {
+    line-height: 1.6;
+    color: var(--text-color);
+    white-space: pre-wrap;
+}
+
+.entry-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.entry-photo {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.entry-photo:hover {
+    transform: scale(1.05);
 }
 
 /* Base styles for simple pages like uploader.html */
