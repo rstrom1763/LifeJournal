@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bytes"
-	"compress/gzip"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -24,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
+	utils "github.com/rstrom1763/goUtils"
 )
 
 //TIP To run your code, right-click the code and select <b>Run</b>. Alternatively, click
@@ -292,29 +291,6 @@ func fileExists(filename string) bool {
 	return false // Error occurred (e.g., permission denied)
 }
 
-func gzipBytes(data []byte) ([]byte, error) {
-	// Create a buffer to hold the gzipped data.
-	var buf bytes.Buffer
-
-	// Create a new gzip writer with the buffer.
-	gz := gzip.NewWriter(&buf)
-
-	// Write the data to the gzip writer.
-	_, err := gz.Write(data)
-	if err != nil {
-		return nil, err
-	}
-
-	// Close the gzip writer to flush any remaining data.
-	err = gz.Close()
-	if err != nil {
-		return nil, err
-	}
-
-	// Return the gzipped data.
-	return buf.Bytes(), nil
-}
-
 func listSlice(slice []string) string {
 	var output string
 
@@ -405,7 +381,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, concerts)
+		jsonData, err := json.Marshal(concerts)
+		if err != nil {
+			log.Printf("Could not marshal concerts: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	// Get all movies (HTML page)
@@ -438,7 +424,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, movies)
+		jsonData, err := json.Marshal(movies)
+		if err != nil {
+			log.Printf("Could not marshal movies: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	// Get all movies of the provided tier (JSON API)
@@ -466,7 +462,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, movies)
+		jsonData, err := json.Marshal(movies)
+		if err != nil {
+			log.Printf("Could not marshal movies: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	// Get all books (HTML page)
@@ -499,7 +505,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, books)
+		jsonData, err := json.Marshal(books)
+		if err != nil {
+			log.Printf("Could not marshal books: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	// Get all food places (HTML page)
@@ -528,7 +544,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, foodPlaces)
+		jsonData, err := json.Marshal(foodPlaces)
+		if err != nil {
+			log.Printf("Could not marshal food places: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	// Get food places by location (JSON API)
@@ -554,7 +580,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, foodPlaces)
+		jsonData, err := json.Marshal(foodPlaces)
+		if err != nil {
+			log.Printf("Could not marshal food places: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	r.GET("/favicon.ico", func(c *gin.Context) {
@@ -589,7 +625,17 @@ func main() {
 		}
 		_ = rows.Close()
 
-		c.JSON(http.StatusOK, tvShows)
+		jsonData, err := json.Marshal(tvShows)
+		if err != nil {
+			log.Printf("Could not marshal TV shows: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	// Endpoint for file upload
@@ -716,7 +762,17 @@ func main() {
 			})
 		}
 
-		c.JSON(http.StatusOK, entries)
+		jsonData, err := json.Marshal(entries)
+		if err != nil {
+			log.Printf("Could not marshal journal entries: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
 	r.GET("/api/photos/:id", func(c *gin.Context) {
