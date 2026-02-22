@@ -326,7 +326,15 @@ func main() {
 		fmt.Println("Connected to DB (sqlite)")
 		dao = daos.NewSQLiteDAO(db)
 	case "postgres":
-		log.Fatal("Postgres DAO not implemented yet")
+		dsn := env("POSTGRES_DSN")
+		db := daos.InitPostgresDB(dsn)
+		closeDB = func() {
+			if err := db.Close(); err != nil {
+				log.Println("Error closing DB: ", err)
+			}
+		}
+		fmt.Println("Connected to DB (postgres)")
+		dao = daos.NewPostgresDAO(db)
 	default:
 		log.Fatalf("Invalid DAO")
 	}
