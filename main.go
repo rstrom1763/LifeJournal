@@ -19,6 +19,9 @@ import (
 	"strings"
 	"time"
 
+	"memories/daos"
+	. "memories/model"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
@@ -169,48 +172,6 @@ CREATE TABLE IF NOT EXISTS files (
 
 }
 
-type Concert struct {
-	Date    string
-	Artists string
-	Notes   string
-	People  string
-}
-
-type Movie struct {
-	Title string
-	Tier  string
-}
-
-type Book struct {
-	Title    string
-	Rating   float64
-	Pages    int
-	Author   string
-	Series   string
-	Finished bool
-}
-
-type FoodPlace struct {
-	Name     string
-	Location string
-	Notes    string
-	Type     string
-	Category string
-}
-
-type TVShow struct {
-	Title          string
-	Notes          string
-	SeasonsWatched string
-}
-
-type JournalEntry struct {
-	Title  string
-	Entry  string
-	Tags   string
-	Photos string
-}
-
 func env(key string) string {
 
 	// load .env file
@@ -220,6 +181,14 @@ func env(key string) string {
 	}
 
 	return os.Getenv(key)
+}
+
+func envOrDefault(key, fallback string) string {
+	value := env(key)
+	if strings.TrimSpace(value) == "" {
+		return fallback
+	}
+	return value
 }
 
 func generateSSL() {
@@ -326,6 +295,7 @@ func main() {
 
 	port := env("PORT") // Port to listen on
 	protocol := strings.ToLower(env("PROTOCOL"))
+	daoName := strings.ToLower(env("DAO"))
 
 	// Initialize Gin
 	gin.SetMode(gin.ReleaseMode) // Turn off debugging mode
@@ -341,17 +311,29 @@ func main() {
 		generateSSL()
 	}
 
-	db := initDB("./life_journal.sqlite")
+	var dao LifeJournalDAO
+	var closeDB func()
 
-	// Close session at the end
-	defer func(db *sql.DB) {
-
-		err := db.Close()
-		if err != nil {
-			log.Println("Error closing DB: ", err)
+	switch daoName {
+	case "sqlite":
+		dbPath := envOrDefault("SQLITE_PATH", "./life_journal.sqlite")
+		db := initDB(dbPath)
+		closeDB = func() {
+			if err := db.Close(); err != nil {
+				log.Println("Error closing DB: ", err)
+			}
 		}
-	}(db)
-	fmt.Println("Connected to DB")
+		fmt.Println("Connected to DB (sqlite)")
+		dao = daos.NewSQLiteDAO(db)
+	case "postgres":
+		log.Fatal("Postgres DAO not implemented yet")
+	default:
+		log.Fatalf("Invalid DAO")
+	}
+
+	if closeDB != nil {
+		defer closeDB()
+	}
 
 	// Home page
 	r.GET("/", func(c *gin.Context) {
@@ -367,25 +349,12 @@ func main() {
 
 	// Get all concerts (JSON API)
 	r.GET("/api/concerts", func(c *gin.Context) {
-		rows, err := db.Query("SELECT artists, people_went_with, notes FROM concerts")
+		concerts, err := dao.GetAllConcerts()
 		if err != nil {
 			log.Printf("Could not get concerts: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get concerts"})
 			return
 		}
-
-		var concerts []Concert
-
-		for rows.Next() {
-			var concert Concert
-			err = rows.Scan(&concert.Artists, &concert.People, &concert.Notes)
-			if err != nil {
-				log.Printf("Could not scan rows: %v", err)
-				continue
-			}
-			concerts = append(concerts, concert)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(concerts)
 		if err != nil {
@@ -408,27 +377,12 @@ func main() {
 
 	// Get all movies (JSON API)
 	r.GET("/api/movies", func(c *gin.Context) {
-		getQuery := `SELECT title, tier FROM watched_movies`
-
-		rows, err := db.Query(getQuery)
+		movies, err := dao.GetAllMovies()
 		if err != nil {
 			log.Printf("Could not get movies: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get movies"})
 			return
 		}
-
-		var movies []Movie
-
-		for rows.Next() {
-			var movie Movie
-			err = rows.Scan(&movie.Title, &movie.Tier)
-			if err != nil {
-				log.Printf("Could not scan rows: %v", err)
-				continue
-			}
-			movies = append(movies, movie)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(movies)
 		if err != nil {
@@ -446,27 +400,13 @@ func main() {
 	// Get all movies of the provided tier (JSON API)
 	r.GET("/api/movies/:tier", func(c *gin.Context) {
 		tier := strings.ToUpper(c.Param("tier"))
-		getQuery := `SELECT title, tier FROM watched_movies WHERE tier = ?`
 
-		rows, err := db.Query(getQuery, tier)
+		movies, err := dao.GetMoviesByTier(tier)
 		if err != nil {
 			log.Printf("Could not get movies: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get movies"})
 			return
 		}
-
-		var movies []Movie
-
-		for rows.Next() {
-			var movie Movie
-			err := rows.Scan(&movie.Title, &movie.Tier)
-			if err != nil {
-				log.Printf("Could not scan rows: %v", err)
-				continue
-			}
-			movies = append(movies, movie)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(movies)
 		if err != nil {
@@ -489,27 +429,12 @@ func main() {
 
 	// Get all books (JSON API)
 	r.GET("/api/books", func(c *gin.Context) {
-		getQuery := `SELECT title, rating, pages, author, series, finished FROM books`
-
-		rows, err := db.Query(getQuery)
+		books, err := dao.GetAllBooks()
 		if err != nil {
 			log.Printf("Could not get books: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get books"})
 			return
 		}
-
-		var books []Book
-
-		for rows.Next() {
-			var book Book
-			err = rows.Scan(&book.Title, &book.Rating, &book.Pages, &book.Author, &book.Series, &book.Finished)
-			if err != nil {
-				log.Printf("Could not scan rows: %v", err)
-				continue
-			}
-			books = append(books, book)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(books)
 		if err != nil {
@@ -532,23 +457,12 @@ func main() {
 
 	// Get all food places (JSON API)
 	r.GET("/api/food", func(c *gin.Context) {
-		getQuery := `SELECT name, location, notes, type, category FROM food_places ORDER BY name`
-
-		rows, err := db.Query(getQuery)
+		foodPlaces, err := dao.GetAllFoodPlaces()
 		if err != nil {
 			log.Printf("Could not get food: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get food"})
 			return
 		}
-
-		var foodPlaces []FoodPlace
-
-		for rows.Next() {
-			var place FoodPlace
-			_ = rows.Scan(&place.Name, &place.Location, &place.Notes, &place.Type, &place.Category)
-			foodPlaces = append(foodPlaces, place)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(foodPlaces)
 		if err != nil {
@@ -565,26 +479,15 @@ func main() {
 
 	// Get food places by location (JSON API)
 	r.GET("/api/food/:location", func(c *gin.Context) {
-		getQuery := `SELECT name, location, notes, type, category FROM food_places WHERE location = ? ORDER BY name`
-
 		location := c.Param("location")
 		location = strings.ToLower(location)
 
-		rows, err := db.Query(getQuery, location)
+		foodPlaces, err := dao.GetFoodPlacesByLocation(location)
 		if err != nil {
 			log.Printf("Could not get food: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get food"})
 			return
 		}
-
-		var foodPlaces []FoodPlace
-
-		for rows.Next() {
-			var place FoodPlace
-			_ = rows.Scan(&place.Name, &place.Location, &place.Notes, &place.Type, &place.Category)
-			foodPlaces = append(foodPlaces, place)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(foodPlaces)
 		if err != nil {
@@ -613,23 +516,12 @@ func main() {
 
 	// Get all TV shows (JSON API)
 	r.GET("/api/tv", func(c *gin.Context) {
-		getQuery := `SELECT title, notes, seasons_watched FROM tv_shows`
-
-		rows, err := db.Query(getQuery)
+		tvShows, err := dao.GetAllTVShows()
 		if err != nil {
 			log.Printf("Could not get TV shows: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get TV shows"})
 			return
 		}
-
-		var tvShows []TVShow
-
-		for rows.Next() {
-			var show TVShow
-			_ = rows.Scan(&show.Title, &show.Notes, &show.SeasonsWatched)
-			tvShows = append(tvShows, show)
-		}
-		_ = rows.Close()
 
 		jsonData, err := json.Marshal(tvShows)
 		if err != nil {
@@ -673,37 +565,28 @@ func main() {
 				return
 			}
 
-			// Define the insert query
-			insertQuery := `INSERT INTO files (file_name,bytes) VALUES (?,?)`
-
-			fileHandle, _ := file.Open()
+			fileHandle, err := file.Open()
 			if err != nil {
+				log.Println("Failed to open file:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
 				return
 			}
 			data, err := io.ReadAll(fileHandle)
-
-			// Execute the insert query
-			_, err = db.Exec(insertQuery, file.Filename, data)
 			if err != nil {
-				log.Println("Failed to execute query:", err)
+				log.Println("Failed to read file:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
+				return
+			}
+
+			// Use DAO to create photo and get ID
+			id, err := dao.CreatePhoto(file.Filename, data)
+			if err != nil {
+				log.Println("Failed to create photo:", err)
 				c.String(http.StatusInternalServerError, "Failed to insert data")
+				return
 			}
 
-			// Define the get query
-			getQuery := `SELECT id FROM files WHERE file_name = ? ORDER BY created DESC LIMIT 1`
-			rows, err := db.Query(getQuery, file.Filename)
-			if err != nil {
-				fmt.Println("Failed to execute query:", err)
-				continue
-			}
-
-			var id int
-			if rows.Next() {
-				_ = rows.Scan(&id)
-				fileIds = append(fileIds, id)
-			}
-			rows.Close()
-
+			fileIds = append(fileIds, id)
 			fileIdsJson, _ = json.Marshal(fileIds)
 
 		}
@@ -717,22 +600,28 @@ func main() {
 		data, err := io.ReadAll(c.Request.Body)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+			return
 		}
 
-		var e JournalEntry
+		// Struct for parsing JSON input (without ID and Created fields)
+		var e struct {
+			Title  string `json:"title"`
+			Entry  string `json:"entry"`
+			Tags   string `json:"tags"`
+			Photos string `json:"photos"`
+		}
 		err = json.Unmarshal(data, &e)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Error parsing body"})
+			return
 		}
 
-		// Define the insert query
-		insertQuery := `INSERT INTO journal_entries (title,entry,tags,photos) VALUES (?,?,?,?)`
-
-		// Execute the insert query
-		_, err = db.Exec(insertQuery, e.Title, e.Entry, e.Tags, e.Photos)
+		// Use DAO to create journal entry
+		err = dao.CreateJournalEntry(e.Title, e.Entry, e.Tags, e.Photos)
 		if err != nil {
-			log.Println("Failed to execute query:", err)
+			log.Println("Failed to create journal entry:", err)
 			c.String(http.StatusInternalServerError, "Failed to insert data")
+			return
 		}
 
 		c.JSON(http.StatusOK, gin.H{"message": "Success", "entries": e})
@@ -740,32 +629,11 @@ func main() {
 	})
 
 	r.GET("/api/journal", func(c *gin.Context) {
-		rows, err := db.Query("SELECT id, created, title, entry, tags, photos FROM journal_entries ORDER BY created DESC")
+		entries, err := dao.GetAllJournalEntries()
 		if err != nil {
 			log.Printf("Could not get journal entries: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get journal entries"})
 			return
-		}
-		defer rows.Close()
-
-		var entries []map[string]interface{}
-		for rows.Next() {
-			var id int
-			var createdAt, title, entry, tags, photos string
-			err = rows.Scan(&id, &createdAt, &title, &entry, &tags, &photos)
-			if err != nil {
-				log.Printf("Could not scan journal entry: %v", err)
-				continue
-			}
-
-			entries = append(entries, map[string]interface{}{
-				"id":      id,
-				"created": createdAt,
-				"title":   title,
-				"entry":   entry,
-				"tags":    tags,
-				"photos":  photos,
-			})
 		}
 
 		jsonData, err := json.Marshal(entries)
@@ -782,23 +650,28 @@ func main() {
 	})
 
 	r.GET("/api/photos/:id", func(c *gin.Context) {
-		id := c.Param("id")
-		var fileName string
-		var data []byte
-		err := db.QueryRow("SELECT file_name, bytes FROM files WHERE id = ?", id).Scan(&fileName, &data)
+		idStr := c.Param("id")
+		var id int
+		_, err := fmt.Sscanf(idStr, "%d", &id)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid photo ID"})
+			return
+		}
+
+		photo, err := dao.GetPhotoByID(id)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Photo not found"})
 			return
 		}
 
 		contentType := "image/jpeg"
-		if strings.HasSuffix(strings.ToLower(fileName), ".png") {
+		if strings.HasSuffix(strings.ToLower(photo.FileName), ".png") {
 			contentType = "image/png"
-		} else if strings.HasSuffix(strings.ToLower(fileName), ".gif") {
+		} else if strings.HasSuffix(strings.ToLower(photo.FileName), ".gif") {
 			contentType = "image/gif"
 		}
 
-		c.Data(http.StatusOK, contentType, data)
+		c.Data(http.StatusOK, contentType, photo.Bytes)
 	})
 
 	r.GET("/journal", func(c *gin.Context) {
