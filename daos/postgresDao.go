@@ -161,7 +161,7 @@ func NewPostgresDAO(db *sql.DB) *PostgresDAO {
 
 // Concert methods
 func (dao *PostgresDAO) GetAllConcerts() ([]Concert, error) {
-	rows, err := dao.db.Query("SELECT artists, people_went_with, notes FROM concerts")
+	rows, err := dao.db.Query("SELECT COALESCE(artists, ''), COALESCE(people_went_with, ''), COALESCE(notes, '') FROM concerts")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query concerts: %w", err)
 	}
@@ -183,7 +183,7 @@ func (dao *PostgresDAO) GetAllConcerts() ([]Concert, error) {
 
 // Movie methods
 func (dao *PostgresDAO) GetAllMovies() ([]Movie, error) {
-	rows, err := dao.db.Query("SELECT title, tier FROM watched_movies")
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(tier, '') FROM watched_movies")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query movies: %w", err)
 	}
@@ -204,7 +204,7 @@ func (dao *PostgresDAO) GetAllMovies() ([]Movie, error) {
 }
 
 func (dao *PostgresDAO) GetMoviesByTier(tier string) ([]Movie, error) {
-	rows, err := dao.db.Query("SELECT title, tier FROM watched_movies WHERE tier = $1", tier)
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(tier, '') FROM watched_movies WHERE tier = $1", tier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query movies by tier: %w", err)
 	}
@@ -226,7 +226,7 @@ func (dao *PostgresDAO) GetMoviesByTier(tier string) ([]Movie, error) {
 
 // Book methods
 func (dao *PostgresDAO) GetAllBooks() ([]Book, error) {
-	rows, err := dao.db.Query("SELECT title, rating, pages, author, series, finished FROM books")
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(rating, 0), COALESCE(pages, 0), COALESCE(author, ''), COALESCE(series, ''), COALESCE(finished, false) FROM books")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query books: %w", err)
 	}
@@ -248,7 +248,7 @@ func (dao *PostgresDAO) GetAllBooks() ([]Book, error) {
 
 // Food methods
 func (dao *PostgresDAO) GetAllFoodPlaces() ([]FoodPlace, error) {
-	rows, err := dao.db.Query("SELECT name, location, notes, type, category FROM food_places ORDER BY name")
+	rows, err := dao.db.Query("SELECT COALESCE(name, ''), COALESCE(location, ''), COALESCE(notes, ''), COALESCE(type, ''), COALESCE(category, '') FROM food_places ORDER BY name")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query food places: %w", err)
 	}
@@ -269,7 +269,7 @@ func (dao *PostgresDAO) GetAllFoodPlaces() ([]FoodPlace, error) {
 }
 
 func (dao *PostgresDAO) GetFoodPlacesByLocation(location string) ([]FoodPlace, error) {
-	rows, err := dao.db.Query("SELECT name, location, notes, type, category FROM food_places WHERE location = $1 ORDER BY name", location)
+	rows, err := dao.db.Query("SELECT COALESCE(name, ''), COALESCE(location, ''), COALESCE(notes, ''), COALESCE(type, ''), COALESCE(category, '') FROM food_places WHERE location = $1 ORDER BY name", location)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query food places by location: %w", err)
 	}
@@ -289,9 +289,44 @@ func (dao *PostgresDAO) GetFoodPlacesByLocation(location string) ([]FoodPlace, e
 	return foodPlaces, nil
 }
 
+// People methods
+func (dao *PostgresDAO) GetAllPeople() ([]Person, error) {
+	rows, err := dao.db.Query("SELECT id, COALESCE(first, ''), COALESCE(middle, ''), COALESCE(last, ''), COALESCE(address, ''), COALESCE(birth_day, 0), COALESCE(birth_month, 0), COALESCE(birth_year, 0), COALESCE(array_to_string(gift_ideas, ', '), ''), COALESCE(email, ''), COALESCE(category, ''), COALESCE(notes, '') FROM people ORDER BY last, first")
+	if err != nil {
+		return nil, fmt.Errorf("failed to query people: %w", err)
+	}
+	defer rows.Close()
+
+	var people []Person
+	for rows.Next() {
+		var person Person
+		err = rows.Scan(
+			&person.ID,
+			&person.First,
+			&person.Middle,
+			&person.Last,
+			&person.Address,
+			&person.BirthDay,
+			&person.BirthMonth,
+			&person.BirthYear,
+			&person.GiftIdeas,
+			&person.Email,
+			&person.Category,
+			&person.Notes,
+		)
+		if err != nil {
+			log.Printf("Failed to scan person row: %v", err)
+			continue
+		}
+		people = append(people, person)
+	}
+
+	return people, nil
+}
+
 // TV methods
 func (dao *PostgresDAO) GetAllTVShows() ([]TVShow, error) {
-	rows, err := dao.db.Query("SELECT title, notes, seasons_watched FROM tv_shows")
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(notes, ''), COALESCE(seasons_watched, '') FROM tv_shows")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query TV shows: %w", err)
 	}
@@ -313,7 +348,7 @@ func (dao *PostgresDAO) GetAllTVShows() ([]TVShow, error) {
 
 // Journal methods
 func (dao *PostgresDAO) GetAllJournalEntries() ([]JournalEntry, error) {
-	rows, err := dao.db.Query("SELECT id, created, title, entry, tags, photos FROM journal_entries ORDER BY created DESC")
+	rows, err := dao.db.Query("SELECT id, COALESCE(created::text, ''), COALESCE(title, ''), COALESCE(entry, ''), COALESCE(tags, ''), COALESCE(photos, '') FROM journal_entries ORDER BY created DESC")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query journal entries: %w", err)
 	}
@@ -354,7 +389,7 @@ func (dao *PostgresDAO) CreatePhoto(fileName string, bytes []byte) (int, error) 
 
 func (dao *PostgresDAO) GetPhotoByID(id int) (*Photo, error) {
 	var photo Photo
-	err := dao.db.QueryRow("SELECT id, file_name, bytes, created FROM files WHERE id = $1", id).
+	err := dao.db.QueryRow("SELECT id, COALESCE(file_name, ''), bytes, COALESCE(created::text, '') FROM files WHERE id = $1", id).
 		Scan(&photo.ID, &photo.FileName, &photo.Bytes, &photo.Created)
 	if err != nil {
 		if err == sql.ErrNoRows {

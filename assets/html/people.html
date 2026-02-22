@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>People</title>
+    <link rel="stylesheet" href="/style.css">
+    <style>
+        .container {
+            max-width: 1000px;
+        }
+        .item-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: box-shadow 0.2s;
+        }
+        .item-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            gap: 16px;
+        }
+        .item-title {
+            font-size: 1.3rem;
+            color: var(--heading-color);
+            font-weight: 600;
+            margin: 0;
+        }
+        .category-badge {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: capitalize;
+            white-space: nowrap;
+        }
+        .item-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .meta-field {
+            display: flex;
+            align-items: center;
+        }
+        .field-label {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-right: 8px;
+            min-width: 90px;
+        }
+        .field-value {
+            color: var(--text-color);
+        }
+        .notes {
+            margin-top: 12px;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .notes .field-label {
+            min-width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="home-btn">🏠 Home</a>
+    <div class="container">
+        <h2>👥 People</h2>
+        <div id="people-list"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('people-list');
+
+        function formatName(person) {
+            return [person.First, person.Middle, person.Last].filter(Boolean).join(' ').trim() || 'Unknown';
+        }
+
+        function formatBirthday(person) {
+            if (!person.BirthYear && !person.BirthMonth && !person.BirthDay) {
+                return '';
+            }
+            const month = person.BirthMonth ? String(person.BirthMonth).padStart(2, '0') : '??';
+            const day = person.BirthDay ? String(person.BirthDay).padStart(2, '0') : '??';
+            const year = person.BirthYear ? String(person.BirthYear) : '????';
+            return `${month}/${day}/${year}`;
+        }
+
+        fetch('/api/people')
+            .then(response => response.json())
+            .then(people => {
+                if (people.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted);">No people recorded yet.</p>';
+                    return;
+                }
+
+                people.forEach(person => {
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+
+                    const birthday = formatBirthday(person);
+                    const category = person.Category || 'General';
+                    const giftIdeas = person.GiftIdeas || '';
+
+                    card.innerHTML = `
+                        <div class="item-header">
+                            <h3 class="item-title">${formatName(person)}</h3>
+                            <div class="category-badge">${category}</div>
+                        </div>
+                        <div class="item-meta">
+                            ${birthday ? `
+                            <div class="meta-field">
+                                <span class="field-label">Birthday:</span>
+                                <span class="field-value">${birthday}</span>
+                            </div>
+                            ` : ''}
+                            ${person.Email ? `
+                            <div class="meta-field">
+                                <span class="field-label">Email:</span>
+                                <span class="field-value">${person.Email}</span>
+                            </div>
+                            ` : ''}
+                            ${person.Address ? `
+                            <div class="meta-field">
+                                <span class="field-label">Address:</span>
+                                <span class="field-value">${person.Address}</span>
+                            </div>
+                            ` : ''}
+                            ${giftIdeas ? `
+                            <div class="meta-field">
+                                <span class="field-label">Gifts:</span>
+                                <span class="field-value">${giftIdeas}</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ${person.Notes ? `
+                        <div class="notes">
+                            <span class="field-label">Notes:</span>
+                            <span class="field-value">${person.Notes}</span>
+                        </div>
+                        ` : ''}
+                    `;
+
+                    container.appendChild(card);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching people:', error);
+                container.innerHTML = '<p style="color: #e74c3c;">Error loading people.</p>';
+            });
+    </script>
+</body>
+</html>

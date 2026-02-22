@@ -161,7 +161,7 @@ func NewSQLiteDAO(db *sql.DB) *SQLiteDAO {
 
 // Concert methods
 func (dao *SQLiteDAO) GetAllConcerts() ([]Concert, error) {
-	rows, err := dao.db.Query("SELECT artists, people_went_with, notes FROM concerts")
+	rows, err := dao.db.Query("SELECT COALESCE(artists, ''), COALESCE(people_went_with, ''), COALESCE(notes, '') FROM concerts")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query concerts: %w", err)
 	}
@@ -183,7 +183,7 @@ func (dao *SQLiteDAO) GetAllConcerts() ([]Concert, error) {
 
 // Movie methods
 func (dao *SQLiteDAO) GetAllMovies() ([]Movie, error) {
-	rows, err := dao.db.Query("SELECT title, tier FROM watched_movies")
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(tier, '') FROM watched_movies")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query movies: %w", err)
 	}
@@ -204,7 +204,7 @@ func (dao *SQLiteDAO) GetAllMovies() ([]Movie, error) {
 }
 
 func (dao *SQLiteDAO) GetMoviesByTier(tier string) ([]Movie, error) {
-	rows, err := dao.db.Query("SELECT title, tier FROM watched_movies WHERE tier = ?", tier)
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(tier, '') FROM watched_movies WHERE tier = ?", tier)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query movies by tier: %w", err)
 	}
@@ -226,7 +226,7 @@ func (dao *SQLiteDAO) GetMoviesByTier(tier string) ([]Movie, error) {
 
 // Book methods
 func (dao *SQLiteDAO) GetAllBooks() ([]Book, error) {
-	rows, err := dao.db.Query("SELECT title, rating, pages, author, series, finished FROM books")
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(rating, 0), COALESCE(pages, 0), COALESCE(author, ''), COALESCE(series, ''), COALESCE(finished, 0) FROM books")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query books: %w", err)
 	}
@@ -248,7 +248,7 @@ func (dao *SQLiteDAO) GetAllBooks() ([]Book, error) {
 
 // Food methods
 func (dao *SQLiteDAO) GetAllFoodPlaces() ([]FoodPlace, error) {
-	rows, err := dao.db.Query("SELECT name, location, notes, type, category FROM food_places ORDER BY name")
+	rows, err := dao.db.Query("SELECT COALESCE(name, ''), COALESCE(location, ''), COALESCE(notes, ''), COALESCE(type, ''), COALESCE(category, '') FROM food_places ORDER BY name")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query food places: %w", err)
 	}
@@ -269,7 +269,7 @@ func (dao *SQLiteDAO) GetAllFoodPlaces() ([]FoodPlace, error) {
 }
 
 func (dao *SQLiteDAO) GetFoodPlacesByLocation(location string) ([]FoodPlace, error) {
-	rows, err := dao.db.Query("SELECT name, location, notes, type, category FROM food_places WHERE location = ? ORDER BY name", location)
+	rows, err := dao.db.Query("SELECT COALESCE(name, ''), COALESCE(location, ''), COALESCE(notes, ''), COALESCE(type, ''), COALESCE(category, '') FROM food_places WHERE location = ? ORDER BY name", location)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query food places by location: %w", err)
 	}
@@ -289,9 +289,44 @@ func (dao *SQLiteDAO) GetFoodPlacesByLocation(location string) ([]FoodPlace, err
 	return foodPlaces, nil
 }
 
+// People methods
+func (dao *SQLiteDAO) GetAllPeople() ([]Person, error) {
+	rows, err := dao.db.Query("SELECT id, COALESCE(first, ''), COALESCE(middle, ''), COALESCE(last, ''), COALESCE(address, ''), COALESCE(birth_day, 0), COALESCE(birth_month, 0), COALESCE(birth_year, 0), COALESCE(gift_ideas, ''), COALESCE(email, ''), COALESCE(category, ''), COALESCE(notes, '') FROM people ORDER BY last, first")
+	if err != nil {
+		return nil, fmt.Errorf("failed to query people: %w", err)
+	}
+	defer rows.Close()
+
+	var people []Person
+	for rows.Next() {
+		var person Person
+		err = rows.Scan(
+			&person.ID,
+			&person.First,
+			&person.Middle,
+			&person.Last,
+			&person.Address,
+			&person.BirthDay,
+			&person.BirthMonth,
+			&person.BirthYear,
+			&person.GiftIdeas,
+			&person.Email,
+			&person.Category,
+			&person.Notes,
+		)
+		if err != nil {
+			log.Printf("Failed to scan person row: %v", err)
+			continue
+		}
+		people = append(people, person)
+	}
+
+	return people, nil
+}
+
 // TV methods
 func (dao *SQLiteDAO) GetAllTVShows() ([]TVShow, error) {
-	rows, err := dao.db.Query("SELECT title, notes, seasons_watched FROM tv_shows")
+	rows, err := dao.db.Query("SELECT COALESCE(title, ''), COALESCE(notes, ''), COALESCE(seasons_watched, '') FROM tv_shows")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query TV shows: %w", err)
 	}
@@ -313,7 +348,7 @@ func (dao *SQLiteDAO) GetAllTVShows() ([]TVShow, error) {
 
 // Journal methods
 func (dao *SQLiteDAO) GetAllJournalEntries() ([]JournalEntry, error) {
-	rows, err := dao.db.Query("SELECT id, created, title, entry, tags, photos FROM journal_entries ORDER BY created DESC")
+	rows, err := dao.db.Query("SELECT id, COALESCE(created, ''), COALESCE(title, ''), COALESCE(entry, ''), COALESCE(tags, ''), COALESCE(photos, '') FROM journal_entries ORDER BY created DESC")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query journal entries: %w", err)
 	}
@@ -360,7 +395,7 @@ func (dao *SQLiteDAO) CreatePhoto(fileName string, bytes []byte) (int, error) {
 
 func (dao *SQLiteDAO) GetPhotoByID(id int) (*Photo, error) {
 	var photo Photo
-	err := dao.db.QueryRow("SELECT id, file_name, bytes, created FROM files WHERE id = ?", id).
+	err := dao.db.QueryRow("SELECT id, COALESCE(file_name, ''), bytes, COALESCE(created, '') FROM files WHERE id = ?", id).
 		Scan(&photo.ID, &photo.FileName, &photo.Bytes, &photo.Created)
 	if err != nil {
 		if err == sql.ErrNoRows {

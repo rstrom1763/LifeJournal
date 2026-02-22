@@ -233,6 +233,34 @@ func main() {
 		c.Data(http.StatusOK, "application/json", gzipData)
 	})
 
+	// Get all people (HTML page)
+	r.GET("/people", func(c *gin.Context) {
+		html, _ := os.ReadFile("./assets/html/people.html")
+		c.Data(http.StatusOK, "text/html", html)
+	})
+
+	// Get all people (JSON API)
+	r.GET("/api/people", func(c *gin.Context) {
+		people, err := dao.GetAllPeople()
+		if err != nil {
+			log.Printf("Could not get people: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not get people"})
+			return
+		}
+
+		jsonData, err := json.Marshal(people)
+		if err != nil {
+			log.Printf("Could not marshal people: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not encode data"})
+			return
+		}
+
+		gzipData := utils.GzipData(jsonData)
+
+		c.Header("Content-Encoding", "gzip")
+		c.Data(http.StatusOK, "application/json", gzipData)
+	})
+
 	// Get food places by location (JSON API)
 	r.GET("/api/food/:location", func(c *gin.Context) {
 		location := c.Param("location")

@@ -16,6 +16,9 @@ type LifeJournalDAO interface {
 	GetAllFoodPlaces() ([]FoodPlace, error)
 	GetFoodPlacesByLocation(location string) ([]FoodPlace, error)
 
+	// People methods
+	GetAllPeople() ([]Person, error)
+
 	// TV methods
 	GetAllTVShows() ([]TVShow, error)
 
@@ -59,6 +62,22 @@ type FoodPlace struct {
 	Notes    string `json:"Notes"`
 	Type     string `json:"Type"`
 	Category string `json:"Category"`
+}
+
+// Person represents a person entry
+type Person struct {
+	ID         int    `json:"ID"`
+	First      string `json:"First"`
+	Middle     string `json:"Middle"`
+	Last       string `json:"Last"`
+	Address    string `json:"Address"`
+	BirthDay   int    `json:"BirthDay"`
+	BirthMonth int    `json:"BirthMonth"`
+	BirthYear  int    `json:"BirthYear"`
+	GiftIdeas  string `json:"GiftIdeas"`
+	Email      string `json:"Email"`
+	Category   string `json:"Category"`
+	Notes      string `json:"Notes"`
 }
 
 // TVShow represents a TV show entry
