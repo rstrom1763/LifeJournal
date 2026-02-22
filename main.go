@@ -260,37 +260,6 @@ func fileExists(filename string) bool {
 	return false // Error occurred (e.g., permission denied)
 }
 
-func listSlice(slice []string) string {
-	var output string
-
-	length := len(slice)
-	for i, item := range slice {
-
-		output += item
-		if i != length-1 {
-			output += ", "
-		}
-	}
-
-	return output
-}
-
-func listIntSlice(slice []int) string {
-	var output string
-
-	length := len(slice)
-	for i, item := range slice {
-
-		output += fmt.Sprintf("%d", item)
-		if i != length-1 {
-			output += ", "
-		}
-
-	}
-
-	return output
-}
-
 func main() {
 
 	port := env("PORT") // Port to listen on
