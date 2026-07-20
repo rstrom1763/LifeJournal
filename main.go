@@ -7,6 +7,7 @@ import (
 	"log"
 	"memories/daos"
 	. "memories/model"
+	"memories/services"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -90,6 +91,9 @@ func main() {
 	if closeDB != nil {
 		defer closeDB()
 	}
+
+	// Start Birthday Worker
+	services.StartBirthdayWorker(dao, env("DISCORD_WEBHOOK_URL"), envOrDefault("BIRTHDAY_CHECK_TIME", "09:00"))
 
 	// Home page
 	r.GET("/", func(c *gin.Context) {
