@@ -79,7 +79,8 @@ CREATE TABLE IF NOT EXISTS books (
 CREATE TABLE IF NOT EXISTS food_places (
     name VARCHAR(255),
     type VARCHAR(255),
-    location VARCHAR(255),
+    state VARCHAR(50),
+    city VARCHAR(255),
     notes TEXT,
     category VARCHAR(50),
     PRIMARY KEY (name)
